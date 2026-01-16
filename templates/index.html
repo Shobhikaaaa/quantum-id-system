@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quantum Resilient Digital Identity System</title>
+    <style>
+        /* Dark Theme Base */
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 0; 
+            background-color: #1a1a2e; /* Deep Navy Background */
+            color: #e0e0e0; 
+        }
+        .container { 
+            max-width: 1200px; 
+            margin: 20px auto; 
+            padding: 20px;
+            background-color: #242442; /* Slightly Lighter Container Background for contrast */
+            border-radius: 12px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+        }
+        h1 { 
+            color: #90b8f8; /* Light Blue for Main Title */
+            border-bottom: 2px solid #4a4e69; 
+            padding-bottom: 10px; 
+        }
+        
+        /* Content Blocks - Alternate Colors for better visual separation */
+        .block { 
+            /* Base color for all blocks */
+            background-color: #2c2c54; 
+            border: 1px solid #4a4e69; 
+            margin-bottom: 20px; 
+            padding: 15px; 
+            border-radius: 8px; 
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4); 
+        }
+        /* Distinct color for newer blocks (e.g., Block 3) */
+        .block:nth-child(2) { 
+            background-color: #38386e; /* Slightly different shade of purple/indigo */
+        }
+        /* Distinct color for older blocks (e.g., Block 2, 1, etc.) */
+        .block:nth-child(3n+1) {
+            background-color: #2c2c54;
+        }
+
+        .block-header { 
+            display: flex; 
+            justify-content: space-between; 
+            font-weight: bold; 
+            margin-bottom: 10px; 
+            color: #b8b8d1;
+            border-bottom: 1px dashed #4a4e69; /* Added separator in header */
+            padding-bottom: 5px;
+        }
+        
+        /* Digital ID List Styling */
+        .id-list { 
+            border-top: none; 
+            margin-top: 10px; 
+            padding-top: 10px; 
+        }
+        
+        /* ID Item Background Contrast */
+        .id-item { 
+            background-color: #1f1f3a; /* Darker background for the ID content itself */
+            padding: 10px; 
+            margin-bottom: 5px; 
+            border-radius: 4px; 
+            border-left: 5px solid #00aaff; /* Brighter blue accent */
+        }
+
+        /* Styling for the Genesis/Tampered Block Message */
+        .id-item[style*="#ffc107"] {
+            background-color: #4b4b7c;
+            border-left: 5px solid #ffc107 !important; /* Yellow accent */
+        }
+
+        .id-data { 
+            font-size: 0.9em; 
+            word-wrap: break-word; 
+            color: #c9c9d4;
+        }
+        .hash-detail { 
+            font-family: monospace; 
+            font-size: 0.8em; 
+            color: #a0a0a0; 
+        }
+
+        /* Form Area Styling */
+        div[style*="#e9e9f9"] {
+            background-color: #3b3b64 !important; /* Form area uses a distinct dark shade */
+            border: 1px solid #5a5a8e;
+            color: #e0e0e0;
+            padding: 20px !important;
+        }
+        input[type="text"] {
+            background-color: #1f1f3a;
+            color: #e0e0e0;
+            border: 1px solid #5a5a8e !important;
+            border-radius: 6px !important;
+        }
+
+        /* Tampering Status Color */
+        strong:contains("TAMPERING DETECTED") {
+            color: #ff6b6b; /* Bright red warning */
+        }
+        strong:contains("CHAIN VALID") {
+            color: #69f0ae; /* Light green success */
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Quantum Resilient Digital Identity Blockchain</h1>
+        
+        <div style="background-color: #e9e9f9; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+            <h2>Create New Digital ID</h2>
+            <form action="{{ url_for('create_and_mine') }}" method="post" style="display: flex; gap: 10px;">
+                <input type="text" name="user_id" placeholder="Enter User/Device ID (e.g., UAV-003)" required style="padding: 10px; flex-grow: 1; border: 1px solid #ccc; border-radius: 4px;">
+                <input type="text" name="purpose" placeholder="Enter Purpose (e.g., Satellite Access)" required style="padding: 10px; flex-grow: 1; border: 1px solid #ccc; border-radius: 4px;">
+                <button type="submit" style="padding: 10px 15px; background-color: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer;">Create ID & Mine Block</button>
+            </form>
+            <p style="margin-top: 15px;">
+                <a href="{{ url_for('tamper_chain') }}" style="color: #dc3545;">[Simulate Tampering on Last Mined Block]</a> - Click to demonstrate the blockchain integrity check failure.
+            </p>
+        </div>
+        
+        <p>Current Chain Length: <strong>{{ chain_length }} Blocks</strong> | Integrity Status: <strong>{{ is_valid }}</strong></p>
+
+        {% for block in chain %}
+        <div class="block">
+            <div class="block-header">
+                <span>Block Index: <strong>{{ block.index }}</strong></span>
+                <span>Timestamp: {{ block.timestamp | int }}</span>
+                <span>Nonce: {{ block.nonce }}</span>
+            </div>
+            
+            <p>Hash (Current): <span class="hash-detail">{{ block.hash }}</span></p>
+            <p>Hash (Previous): <span class="hash-detail">{{ block.previous_hash }}</span></p>
+            
+            <div class="id-list">
+                <h4>Digital IDs Stored ({{ block.digital_ids | length }} Items)</h4>
+                {% for id_record in block.digital_ids %}
+                    
+                    {# FIX: Only render as a standard ID dictionary if the 'user_data' key is defined #}
+                    {% if id_record.user_data is defined %}
+                        <div class="id-item">
+                            <p><strong>ID:</strong> {{ id_record.user_data.id or id_record.user_data.national_id or id_record.user_data.device_serial }}</p>
+                            <p class="id-data">PQC Public Key (Start): {{ id_record.public_key[:30] }}...</p>
+                            <p class="id-data">PQC Signature (Start): {{ id_record.signature[:30] }}...</p>
+                            <p class="id-data">User Data: {{ id_record.user_data }}</p>
+                        </div>
+                    {% else %}
+                        {# Render the generic data (e.g., the Genesis Block string) #}
+                        <div class="id-item" style="border-left: 5px solid #ffc107;">
+                            <p><strong>BLOCK MESSAGE:</strong> {{ id_record }}</p>
+                        </div>
+                    {% endif %}
+                
+                {% endfor %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</body>
+</html>
